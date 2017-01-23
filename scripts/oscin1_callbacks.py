@@ -24,7 +24,6 @@ toInputsDict = {}
 
 def receiveOSC(dat, rowIndex, message, bytes, timeStamp, address, args, peer):
   if(len(args) > 0):
-    # print(message)
     global toEffectsDict
     global fromEffectsDict
     global toInputsDict
@@ -56,14 +55,12 @@ def receiveOSC(dat, rowIndex, message, bytes, timeStamp, address, args, peer):
 
       if (opName in fromEffectsDict):
         fromOp = op(fromEffectsDict[opName])
-        print("found fromOp - " + fromEffectsDict[opName])
         if(fromOp != None):
           if(len(fromOp.outputConnectors[0].connections) > 0):
             curOp.outputConnectors[0].connect(op(fromOp.outputConnectors[0].connections[0].owner))
           fromOp.outputConnectors[0].connect(curOp.inputConnectors[0])
 
       if(opName in toEffectsDict):
-        print("deleting " + opName)
         delete_effect(toEffectsDict[opName])
 
       baseName = prog_name(opName)
@@ -97,7 +94,6 @@ def receiveOSC(dat, rowIndex, message, bytes, timeStamp, address, args, peer):
 
 
     elif (address == "/progs/effect"):
-      print("effect" + opName + ", " + args[1])
       toEffectsDict[opName] = args[1]
       fromEffectsDict[args[1]] = opName
       effOp = op(args[1])
@@ -107,7 +103,6 @@ def receiveOSC(dat, rowIndex, message, bytes, timeStamp, address, args, peer):
         curOp.outputConnectors[0].connect(effOp)
 
     elif (address == "/progs/effect/clear"):
-      print("effect clear " + opName)
       if (opName in toEffectsDict):
         delete_effect(toEffectsDict[opName])
 
@@ -116,7 +111,6 @@ def receiveOSC(dat, rowIndex, message, bytes, timeStamp, address, args, peer):
       uName = args[1]
       val = 0
       if args[2] == "input":
-        print("trying input " + args[3])
         inputs = toInputsDict[opName]
         newOpName = opName + '_input_' + uName
 
@@ -154,24 +148,7 @@ def receiveOSC(dat, rowIndex, message, bytes, timeStamp, address, args, peer):
         uniforms.appendRow([uName, opName, uName.replace("_", "").capitalize(), val])
 
     elif (address == "/progs/clear" and uniforms != None):
-      print("progs clear" + opName)
       delete_effect(opName)
-
-    elif address == "/progs/connections":
-      selects = curOp.ops('select*')
-      if len(selects) > len(args):
-        start = len(args) - 1
-        print("Destroying from " + str(start))
-        for sel in selects[start:]:
-          sel.destroy()
-
-      for idx, arg in enumerate(args[1:]):
-        newVal = '../' + prog_name(arg) + '_base'
-        if idx < len(selects):
-          selects[idx].par.top = newVal
-        else:
-          sel = curOp.create(selectTOP)
-          sel.par.top = newVal
 
   return
 
