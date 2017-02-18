@@ -159,17 +159,16 @@ def receiveOSC(dat, rowIndex, message, bytes, timeStamp, address, args, peer):
   return
 
 def delete_effect(opName):
-  print(opName)
+  print("deleting " + opName)
   if (opName in toEffectsDict):
     effName = toEffectsDict[opName]
     delete_effect(effName)
     del toEffectsDict[opName]
 
-  if (opName in fromEffectsDict):
-    del fromEffectsDict[opName]
-
-  if(op(opName) != None):
-    op(opName).destroy()
+  curOp = op(opName)
+  if(curOp != None):
+    curOp.inputs[0].outputConnectors[0].connect(curOp.outputs[0].inputConnectors[0])
+    curOp.destroy()
 
   if(op('uniforms_' + opName) != None):
     op('uniforms_' + opName).destroy()
