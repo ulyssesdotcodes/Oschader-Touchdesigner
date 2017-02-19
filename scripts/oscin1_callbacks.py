@@ -91,8 +91,8 @@ def receiveOSC(dat, rowIndex, message, bytes, timeStamp, address, args, peer):
         if(opName == "s0"):
           baseOp.outputConnectors[0].connect(op('sout'))
 
-        if(opName == "t0"):
-          baseOp.outputConnectors[0].connect(op('tout'))
+        if(opName == "z0"):
+          baseOp.outputConnectors[0].connect(op('zout'))
 
       toInputsDict[opName] = []
 
@@ -167,7 +167,8 @@ def delete_effect(opName):
 
   curOp = op(opName)
   if(curOp != None):
-    curOp.inputs[0].outputConnectors[0].connect(curOp.outputs[0].inputConnectors[0])
+    if len(curOp.inputs) > 0:
+      curOp.inputs[0].outputConnectors[0].connect(curOp.outputs[0].inputConnectors[0])
     curOp.destroy()
 
   if(op('uniforms_' + opName) != None):
