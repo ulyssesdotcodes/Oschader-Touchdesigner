@@ -117,6 +117,7 @@ def receiveOSC(dat, rowIndex, message, bytes, timeStamp, address, args, peer):
       uName = args[1]
       val = 0
       if args[2] == "input":
+        print(message)
         inputs = toInputsDict[opName]
         newOpName = opName + '_input_' + uName
 

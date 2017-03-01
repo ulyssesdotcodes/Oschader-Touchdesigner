@@ -1,22 +1,18 @@
 uniform vec2 uTranslate;
+uniform vec2 uScale;
+uniform int uClones;
 
 out vec4 fragColor;
-
-float triangle(float x)
-{
-	return abs(1.0 - mod(abs(x), 2.0)) * 2.0 - 1.0;
-}
-
-float rand(float x)
-{
-    return fract(sin(x) * 43758.5453);
-}
 
 void main()
 {
   vec2 uv = vUV.st;
   vec4 color = texture2D(sTD2DInputs[0], vUV.st);
-  color += texture2D(sTD2DInputs[0], vUV.st + uTranslate);
 
-	fragColor = color;
+  for(int i = 0; i < uClones; ++i) {
+    uv = (uv - vec2(0.5)) * (1 - uScale) + vec2(0.5) + uTranslate;
+    color += (1 - color.w) * texture2D(sTD2DInputs[0], uv);
+  }
+
+  fragColor = color;
 }
