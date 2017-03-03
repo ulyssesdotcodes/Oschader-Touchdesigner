@@ -32,24 +32,21 @@ def receiveOSC(dat, rowIndex, message, bytes, timeStamp, address, args, peer):
     uniforms = op('uniforms_' + opName)
     curOp = op(opName)
 
-    if(address != "/progs/uniform"):
-      print(message)
-
     if(address == "/progs"):
       progType = args[1]
 
       if(curOp != None and curOp.par.Program != progType):
         curOp.destroy()
         curOp = None
-        uniforms.destroy()
-        uniforms = None
+        # uniforms.destroy()
+        # uniforms = None
+        toInputsDict[opName] = []
 
-      if(uniforms == None):
-        uniforms = parent().create(tableDAT, 'uniforms_'+opName)
-        uniforms.export = True
-        # uniforms.expose = False
-        uniforms.appendRow(["", "path", "parameter", "value"])
-        uniforms.deleteRow(0)
+      # if(uniforms == None):
+      #   uniforms = parent().create(tableDAT, 'uniforms_'+opName)
+      #   uniforms.export = True
+      #   uniforms.appendRow(["", "path", "parameter", "value"])
+      #   uniforms.deleteRow(0)
 
       newProg = op(progType)
       if(newProg != None and curOp == None):
@@ -58,14 +55,14 @@ def receiveOSC(dat, rowIndex, message, bytes, timeStamp, address, args, peer):
 
       if (opName in fromEffectsDict):
         fromOp = op(fromEffectsDict[opName])
-        if(fromOp != None):
+        if fromOp != None and (not fromOp.outputs or fromOp.outputs[0] != curOp):
           if(len(fromOp.outputConnectors[0].connections) > 0):
             curOp.outputConnectors[0].connect(fromOp.outputs[0].inputConnectors[0])
           fromOp.outputConnectors[0].connect(curOp.inputConnectors[0])
 
       if(opName in toEffectsDict):
         toOp = op(toEffectsDict[opName])
-        if(toOp != None):
+        if toOp != None and (not curOp.outputs or curOp.outputs[0] != toOp):
           curOp.outputConnectors[0].connect(toOp.inputConnectors[0])
 
       baseName = prog_name(opName)
@@ -80,13 +77,17 @@ def receiveOSC(dat, rowIndex, message, bytes, timeStamp, address, args, peer):
           baseOp = op('/project1').create(nullTOP)
           baseOp.name = baseName + "_base"
 
-        related = curOp.ops(baseName + '[1-99]')
+        related = ops(baseName + "[1-99]")
 
         if len(related) == 0:
-          curOp.outputConnectors[0].connect(baseOp)
+          curOp.outputConnectors[0].connect(baseOp.inputConnectors[0])
         else:
-          curOp.outputConnectors[0].connect(related[0])
-          related[-1].connect(baseOp)
+          curOp.outputConnectors[0].connect(related[0].inputConnectors[0])
+
+          for idx, prog in enumerate(related[:-1]):
+            related[idx].outputConnectors[0].connect(related[idx + 1].inputConnectors[0])
+
+          related[-1].outputConnectors[0].connect(baseOp.inputConnectors[0])
 
         if(opName == "s0"):
           baseOp.outputConnectors[0].connect(op('sout'))
@@ -94,18 +95,14 @@ def receiveOSC(dat, rowIndex, message, bytes, timeStamp, address, args, peer):
         if(opName == "z0"):
           baseOp.outputConnectors[0].connect(op('zout'))
 
-      toInputsDict[opName] = []
-
 
     elif (address == "/progs/effect"):
       toEffectsDict[opName] = args[1]
       fromEffectsDict[args[1]] = opName
       effOp = op(args[1])
       if(effOp != None):
-        print(curOp.name + " -> " + effOp.name)
         if(len(curOp.outputs) > 0):
-          nextOp = curOp.outputs[0]
-          effOp.outputConnectors[0].connect(nextOp.inputConnectors[0])
+          effOp.outputConnectors[0].connect(curOp.outputs[0].inputConnectors[0])
         curOp.outputConnectors[0].connect(effOp.inputConnectors[0])
 
     elif (address == "/progs/effect/clear"):
@@ -113,11 +110,11 @@ def receiveOSC(dat, rowIndex, message, bytes, timeStamp, address, args, peer):
         delete_effect(toEffectsDict[opName])
 
 
-    elif (address == "/progs/uniform" and uniforms != None):
+    elif (address == "/progs/uniform") and op(opName) != None:
       uName = args[1]
       val = 0
       if args[2] == "input":
-        inputs = toInputsDict[opName]
+        inputs = toInputsDict[opName] if opName in toInputsDict else []
         newOpName = opName + '_input_' + uName
 
         newOp = op(newOpName)
@@ -149,19 +146,19 @@ def receiveOSC(dat, rowIndex, message, bytes, timeStamp, address, args, peer):
       else:
         val = args[2]
 
-      uni = uniforms.row(uName)
-      if(uni != None and len(uni) > 0):
-        uni[3].val = val
-      else:
-        uniforms.appendRow([uName, opName, uName.replace("_", "").capitalize(), val])
+      parObj = op(opName).pars(uName.replace("_", "").capitalize())
+      if len(parObj) > 0:
+        if isinstance(val, str):
+          parObj[0].expr = val
+        else:
+          parObj[0].val = val
 
-    elif (address == "/progs/clear" and uniforms != None):
+    elif (address == "/progs/clear"):
       delete_effect(opName)
 
   return
 
 def delete_effect(opName):
-  print("deleting " + opName)
   if (opName in toEffectsDict):
     effName = toEffectsDict[opName]
     delete_effect(effName)
@@ -173,8 +170,8 @@ def delete_effect(opName):
       curOp.inputs[0].outputConnectors[0].connect(curOp.outputs[0].inputConnectors[0])
     curOp.destroy()
 
-  if(op('uniforms_' + opName) != None):
-    op('uniforms_' + opName).destroy()
+  # if(op('uniforms_' + opName) != None):
+  #   op('uniforms_' + opName).destroy()
 
 def clear_dicts():
   toEffectsDict = {}
